@@ -570,3 +570,84 @@ Then **M2** gets task scopes and typed capabilities.
 That gives us a repo where the first useful version is probably a few thousand lines at most, rather than accidentally starting a new operating system. 😭
 
 And crucially, **M1 alone already fixes the thing that's annoying you about Hermes today.**
+
+---
+
+Yep, I can see it. `hermes-gate` is basically the repo we just sketched, but it’s still at the **skeleton stage**.
+
+Right now the root already has the right broad shape: `config/`, `docs/`, `scripts/`, `src/`, `tests/`, `ui/`, plus `pyproject.toml`, and the README currently just says it’s a WIP Hermes plugin for running Hermes as a main agent in the local environment.
+
+The commit history also makes it clear this was just initialized today: `Initial commit` → `local init` → `skeleton`. So there isn’t really an existing architecture to fight yet; this is the perfect point to lock it down.
+
+I’d keep this repo and make it the thing we discussed, probably with this structure inside `src/`:
+
+```text
+src/hermes_gate/
+├── __init__.py
+├── cli.py
+│
+├── policy/
+│   ├── models.py
+│   ├── engine.py
+│   ├── matcher.py
+│   └── loader.py
+│
+├── approvals/
+│   ├── models.py
+│   ├── leases.py
+│   ├── store.py
+│   └── resolver.py
+│
+├── integrations/
+│   └── hermes/
+│       ├── plugin.py
+│       ├── hooks.py
+│       └── adapter.py
+│
+├── commands/
+│   ├── parser.py
+│   ├── shell.py
+│   └── effects.py
+│
+├── service/
+│   ├── server.py
+│   ├── protocol.py
+│   └── sessions.py
+│
+└── audit/
+    ├── logger.py
+    └── events.py
+```
+
+And I’d make the immediate repo mission very narrow:
+
+```text
+Hermes tool call
+    ↓
+pre_tool_call
+    ↓
+Hermes Gate
+    ↓
+ALLOW / ASK / DENY
+    ↓
+once / session / persistent scope
+    ↓
+Hermes native guardrails still run
+```
+
+The first files worth actually implementing are probably:
+
+```text
+pyproject.toml
+src/hermes_gate/policy/models.py
+src/hermes_gate/policy/engine.py
+src/hermes_gate/approvals/leases.py
+src/hermes_gate/integrations/hermes/plugin.py
+tests/policy/test_engine.py
+```
+
+I would **not** touch bwrap, Docker brokers, sudo brokers, WSL interop, or fancy UI yet. Get the Codex-style permission lifecycle working first.
+
+Also, `hermes-gate` is a better name than `agent-guard` if this is intentionally Hermes-first. We can still keep the internals generic enough that another runtime adapter could be added later.
+
+If you want, next I can inspect the current skeleton commit itself and tell you exactly what I’d change/add before we start coding.
